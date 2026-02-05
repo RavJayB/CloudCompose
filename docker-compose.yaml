@@ -34,7 +34,7 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - ./nginx:/etc/nginx/conf.d:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - api
     restart: unless-stopped
