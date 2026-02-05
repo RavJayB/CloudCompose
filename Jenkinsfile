@@ -39,6 +39,13 @@ pipeline {
       }
     }
 
+   stage('Build & Push Nginx') {
+     steps {
+       sh 'docker build -t ravjayb/compose-fullstack-nginx:latest ./nginx'
+       sh 'docker push ravjayb/compose-fullstack-nginx:latest' // optional: push to registry
+     }
+   }
+
     stage("Deploy") {
       steps {
         sh '''
