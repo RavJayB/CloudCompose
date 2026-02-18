@@ -59,26 +59,46 @@ pipeline {
     stage("Build and push API Image") {
       steps {
         sh '''
-          set -e 
-          docker build -t $ECR_API:$GIT_COMMIT ./api
-          docker push $ECR_API:$GIT_COMMIT
-          docker tag $ECR_API:$GIT_COMMIT $ECR_API:latest
-          docker push $ECR_API:latest 
-          '''
+          set -e
+
+          IMAGE_BUILD_TAG=build-${BUILD_NUMBER}
+          IMAGE_GIT_TAG=git-${GIT_COMMIT}
+
+          docker build \
+            -t $ECR_API:latest \
+            -t $ECR_API:$IMAGE_BUILD_TAG \
+            -t $ECR_API:$IMAGE_GIT_TAG \
+            ./api
+
+          docker push $ECR_API:latest
+          docker push $ECR_API:$IMAGE_BUILD_TAG
+          docker push $ECR_API:$IMAGE_GIT_TAG
+        '''
       }
     }
 
+
    stage('Build & Push Nginx') {
-     steps {
-       sh '''
-         set -e
-         docker build -t $ECR_NGINX:$GIT_COMMIT ./nginx
-         docker push $ECR_NGINX:$GIT_COMMIT
-         docker tag $ECR_NGINX:$GIT_COMMIT $ECR_NGINX:latest
-         docker push $ECR_NGINX:latest 
-       '''
-     }
-   }
+      steps {
+        sh '''
+          set -e
+
+          IMAGE_BUILD_TAG=build-${BUILD_NUMBER}
+          IMAGE_GIT_TAG=git-${GIT_COMMIT}
+
+          docker build \
+            -t $ECR_NGINX:latest \
+            -t $ECR_NGINX:$IMAGE_BUILD_TAG \
+            -t $ECR_NGINX:$IMAGE_GIT_TAG \
+            ./nginx
+
+          docker push $ECR_NGINX:latest
+          docker push $ECR_NGINX:$IMAGE_BUILD_TAG
+          docker push $ECR_NGINX:$IMAGE_GIT_TAG
+        '''
+      }
+    }
+
 
    stage('Docker cleanup') {
       steps {
@@ -90,6 +110,7 @@ pipeline {
     }
 
     stage('Deploy to EC2-B') {
+      options { timeout(time: 10, unit: 'MINUTES') }
       steps {
         sshagent(credentials: ['SSH']) {
           withCredentials([
@@ -102,18 +123,29 @@ pipeline {
               echo "Deploying to EC2-B at ${APP_HOST_IP}"
 
               # 1. Ensure directory exists
-              ssh -o StrictHostKeyChecking=no ubuntu@${APP_HOST_IP} \
+              ssh -o StrictHostKeyChecking=no \
+                -o ServerAliveInterval=60 \
+                -o ServerAliveCountMax=3 \
+                ubuntu@${APP_HOST_IP} \
                 "mkdir -p ~/compose-fullstack"
 
               # 2. Copy compose file
-              scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-                $WORKSPACE/docker-compose.yaml \
+              scp \
+                -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=10 \
+                -o ServerAliveInterval=60 \
+                -o ServerAliveCountMax=3 \
+                "$WORKSPACE/docker-compose.yaml" \
                 ubuntu@${APP_HOST_IP}:/home/ubuntu/compose-fullstack/
 
               # 3. Run deployment remotely
-              ssh -o StrictHostKeyChecking=no ubuntu@${APP_HOST_IP} "
+              ssh \
+                -o StrictHostKeyChecking=no \
+                -o ServerAliveInterval=60 \
+                -o ServerAliveCountMax=3 \
+                ubuntu@${APP_HOST_IP} "
                 set -e
-                export IMAGE_TAG=${GIT_COMMIT}
+                export IMAGE_TAG=build-${BUILD_NUMBER}
                 export ECR_API=${ECR_API}
                 export ECR_NGINX=${ECR_NGINX}
                 export POSTGRES_DB=${POSTGRES_DB}
@@ -127,6 +159,7 @@ pipeline {
 
                 docker compose pull
                 docker compose up -d --remove-orphans
+                docker compose ps
                 docker image prune -f
 
               "
@@ -138,6 +171,10 @@ pipeline {
   }
 
   post {
+      success {
+        echo "Build and deployment successful!"
+      }
+
       failure {
         echo "Build failed - check logs"
       }
