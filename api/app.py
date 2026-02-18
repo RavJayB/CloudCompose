@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.get("/")
 def home():
-    return {"status": "success", "message": "Flask API running behind Nginx ✅"}
+    return {"status": "ok", "message": "Flask API running behind Nginx ✅"}
 
 @app.get("/db-check")
 def db_check():
