@@ -78,6 +78,15 @@ pipeline {
      }
    }
 
+   stage('Docker cleanup') {
+      steps {
+        sh '''
+          docker image prune -f
+          docker builder prune -f
+        '''
+      }
+    }
+
     stage('Deploy to EC2-B') {
       steps {
         sshagent(credentials: ['SSH']) {
@@ -116,6 +125,8 @@ pipeline {
 
                 docker compose pull
                 docker compose up -d --remove-orphans
+                docker image prune -f
+
               "
             '''
           }
