@@ -39,7 +39,9 @@ pipeline {
       steps {
         sh '''
           set -e
-          docker run --rm -v "$WORKSPACE/api":/app -w /app python:3.12-slim bash -lc "pip install -r requirements.txt && pytest -q"
+          docker run --rm -v "$WORKSPACE/api":/app -w /app \
+          python:3.12-slim bash -lc \
+          "pip install -r requirements.txt -r requirements-dev.txt && pytest -q"
         '''
       }
     }
