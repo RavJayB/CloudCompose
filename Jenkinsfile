@@ -1,4 +1,9 @@
 pipeline {
+
+  options {
+    githubProjectProperty('https://github.com/RavJayB/compose-fullstack')
+  }
+
   agent any
 
   environment {
@@ -11,6 +16,12 @@ pipeline {
   }
 
   stages {
+
+    stage('Notify GitHub Start') {
+      steps {
+        githubNotify context: 'jenkins', status: 'PENDING', credentialsId: 'repo-hook'
+      }
+    }
 
     stage('Preflight') {
       steps {
@@ -171,12 +182,12 @@ pipeline {
   }
 
   post {
-      success {
-        echo "Build and deployment successful!"
-      }
-
-      failure {
-        echo "Build failed - check logs"
-      }
-    } 
+    success {
+      githubNotify context: 'jenkins', status: 'SUCCESS', credentialsId: 'repo-hook'
+    }
+    failure {
+      githubNotify context: 'jenkins', status: 'FAILURE', credentialsId: 'repo-hook'
+      echo "Build failed - check logs"
+    }
+  }
 }
