@@ -11,9 +11,9 @@ def home():
 @app.get("/db-check")
 def db_check():
     host = os.getenv("DB_HOST", "db")
-    dbname = os.getenv("POSTGRES_DB", "appdb")
-    user = os.getenv("POSTGRES_USER", "appuser")
-    password = os.getenv("POSTGRES_PASSWORD", "apppass")
+    dbname = os.getenv("POSTGRES_DB")
+    user = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
 
     conn = psycopg2.connect(
         host=host,

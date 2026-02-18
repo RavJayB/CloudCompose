@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ravjayb/compose-fullstack-api:latest
+    image: $ECR_API:${IMAGE_TAG:-latest}
     container_name: app-api
     environment:
       DB_HOST: db
@@ -29,8 +29,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    build: ./nginx
-    image: ravjayb/compose-fullstack-nginx:latest
+    image: $ECR_NGINX:${IMAGE_TAG:-latest}
     container_name: app-nginx
     ports:
       - "8081:80"
