@@ -12,6 +12,17 @@ pipeline {
 
   stages {
 
+    stage('Notify GitHub Start') {
+      steps {
+        step([$class: 'GitHubCommitStatusSetter',
+          contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+          statusResultSource: [$class: 'DefaultStatusResultSource'],
+          statusBackrefSource: [$class: 'BuildRefBackrefSource']
+        ])
+      }
+    }
+
+
     stage('Preflight') {
       steps {
         script {
@@ -171,12 +182,22 @@ pipeline {
   }
 
   post {
-      success {
-        echo "Build and deployment successful!"
-      }
+    success {
+      step([$class: 'GitHubCommitStatusSetter',
+        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+        statusResultSource: [$class: 'DefaultStatusResultSource'],
+        statusBackrefSource: [$class: 'BuildRefBackrefSource']
+      ])
+    }
 
-      failure {
-        echo "Build failed - check logs"
-      }
-    } 
+    failure {
+      step([$class: 'GitHubCommitStatusSetter',
+        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+        statusResultSource: [$class: 'DefaultStatusResultSource'],
+        statusBackrefSource: [$class: 'BuildRefBackrefSource']
+      ])
+      echo "Build failed - check logs"
+    }
+  }
+
 }
