@@ -54,22 +54,21 @@ pipeline {
     // Run tests in a container to ensure consistent environment 
     stage('Run tests') {
       steps {
-        script {
-          step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
-            statusResultSource: [$class: 'DefaultStatusResultSource'],
-            statusBackrefSource: [$class: 'BuildRefBackrefSource']
-          ]) {
-            sh '''
-              set -e
-              docker run --rm -v "$WORKSPACE/api":/app -w /app \
-              python:3.12-slim bash -lc \
-              "pip install -r requirements.txt -r requirements-dev.txt && pytest -q"
-            '''
-          }
-        }
+        step([$class: 'GitHubCommitStatusSetter',
+          contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
+          statusResultSource: [$class: 'DefaultStatusResultSource'],
+          statusBackrefSource: [$class: 'BuildRefBackrefSource']
+        ])
+
+        sh '''
+          set -e
+          docker run --rm -v "$WORKSPACE/api":/app -w /app \
+          python:3.12-slim bash -lc \
+          "pip install -r requirements.txt -r requirements-dev.txt && pytest -q"
+        '''
       }
     }
+
 
 
     stage('Login to ECR') {
