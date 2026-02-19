@@ -1,3 +1,5 @@
+Now check this - 
+
 pipeline {
   agent any
 
@@ -24,6 +26,12 @@ pipeline {
 
 
     stage('Preflight') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         script {
           if (!env.APP_HOST_IP?.trim()) {
@@ -48,6 +56,14 @@ pipeline {
     // Run tests in a container to ensure consistent environment 
     stage('Run tests') {
       steps {
+
+        script {
+          step([$class: 'GitHubCommitStatusSetter',
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
+            statusResultSource: [$class: 'DefaultStatusResultSource'],
+            statusBackrefSource: [$class: 'BuildRefBackrefSource']
+          ])
+        }
         sh '''
           set -e
           docker run --rm -v "$WORKSPACE/api":/app -w /app \
@@ -58,6 +74,13 @@ pipeline {
     }
 
     stage('Login to ECR') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
+
       steps {
         // If Jenkins has an instance role, no credentials needed — just run aws cli.
         sh '''
@@ -68,7 +91,22 @@ pipeline {
     }
 
     stage("Build and push API Image") {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
+
+        script {
+          step([$class: 'GitHubCommitStatusSetter',
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build'],
+            statusResultSource: [$class: 'DefaultStatusResultSource'],
+            statusBackrefSource: [$class: 'BuildRefBackrefSource']
+          ])
+        }
+
         sh '''
           set -e
 
@@ -90,7 +128,22 @@ pipeline {
 
 
    stage('Build & Push Nginx') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
+
+        script {
+          step([$class: 'GitHubCommitStatusSetter',
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build'],
+            statusResultSource: [$class: 'DefaultStatusResultSource'],
+            statusBackrefSource: [$class: 'BuildRefBackrefSource']
+          ])
+        }
+
         sh '''
           set -e
 
@@ -121,8 +174,23 @@ pipeline {
     }
 
     stage('Deploy to EC2-B') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       options { timeout(time: 10, unit: 'MINUTES') }
       steps {
+
+        script {
+          step([$class: 'GitHubCommitStatusSetter',
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/deploy'],
+            statusResultSource: [$class: 'DefaultStatusResultSource'],
+            statusBackrefSource: [$class: 'BuildRefBackrefSource']
+          ])
+        }
+
         sshagent(credentials: ['SSH']) {
           withCredentials([
             string(credentialsId: 'pg-db-name', variable: 'POSTGRES_DB'),
@@ -181,23 +249,23 @@ pipeline {
     }
   }
 
-  post {
-    success {
-      step([$class: 'GitHubCommitStatusSetter',
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-        statusResultSource: [$class: 'DefaultStatusResultSource'],
-        statusBackrefSource: [$class: 'BuildRefBackrefSource']
-      ])
-    }
+  // post {
+  //   success {
+  //     step([$class: 'GitHubCommitStatusSetter',
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
+  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
+  //     ])
+  //   }
 
-    failure {
-      step([$class: 'GitHubCommitStatusSetter',
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-        statusResultSource: [$class: 'DefaultStatusResultSource'],
-        statusBackrefSource: [$class: 'BuildRefBackrefSource']
-      ])
-      echo "Build failed - check logs"
-    }
-  }
+  //   failure {
+  //     step([$class: 'GitHubCommitStatusSetter',
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
+  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
+  //     ])
+  //     echo "Build failed - check logs"
+  //   }
+  // }
 
 }
