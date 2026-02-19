@@ -208,24 +208,4 @@ pipeline {
       }
     }
   }
-
-  // post {
-  //   success {
-  //     step([$class: 'GitHubCommitStatusSetter',
-  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
-  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
-  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
-  //     ])
-  //   }
-
-  //   failure {
-  //     step([$class: 'GitHubCommitStatusSetter',
-  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
-  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
-  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
-  //     ])
-  //   }
-  // }
-
-
 }
