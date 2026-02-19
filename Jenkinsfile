@@ -16,7 +16,7 @@ pipeline {
     // stage('Notify GitHub Start') {
     //   steps {
     //     step([$class: 'GitHubCommitStatusSetter',
-    //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+    //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
     //       statusResultSource: [$class: 'DefaultStatusResultSource'],
     //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
     //     ])
@@ -59,17 +59,18 @@ pipeline {
             contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
             statusResultSource: [$class: 'DefaultStatusResultSource'],
             statusBackrefSource: [$class: 'BuildRefBackrefSource']
-          ])
+          ]) {
+            sh '''
+              set -e
+              docker run --rm -v "$WORKSPACE/api":/app -w /app \
+              python:3.12-slim bash -lc \
+              "pip install -r requirements.txt -r requirements-dev.txt && pytest -q"
+            '''
+          }
         }
-
-        sh '''
-          set -e
-          docker run --rm -v "$WORKSPACE/api":/app -w /app \
-          python:3.12-slim bash -lc \
-          "pip install -r requirements.txt -r requirements-dev.txt && pytest -q"
-        '''
       }
     }
+
 
     stage('Login to ECR') {
       when {
@@ -99,7 +100,7 @@ pipeline {
 
         script {
           step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build'],
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build-api'],
             statusResultSource: [$class: 'DefaultStatusResultSource'],
             statusBackrefSource: [$class: 'BuildRefBackrefSource']
           ])
@@ -135,7 +136,7 @@ pipeline {
       steps {
         script {
           step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build'],
+            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build-nginx'],
             statusResultSource: [$class: 'DefaultStatusResultSource'],
             statusBackrefSource: [$class: 'BuildRefBackrefSource']
           ])
@@ -248,7 +249,7 @@ pipeline {
   // post {
   //   success {
   //     step([$class: 'GitHubCommitStatusSetter',
-  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
   //       statusResultSource: [$class: 'DefaultStatusResultSource'],
   //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
   //     ])
@@ -256,12 +257,12 @@ pipeline {
 
   //   failure {
   //     step([$class: 'GitHubCommitStatusSetter',
-  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
   //       statusResultSource: [$class: 'DefaultStatusResultSource'],
   //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
   //     ])
-  //     echo "Build failed - check logs"
   //   }
   // }
+
 
 }
