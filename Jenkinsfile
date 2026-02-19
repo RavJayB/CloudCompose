@@ -14,15 +14,15 @@ pipeline {
 
   stages {
 
-    stage('Notify GitHub Start') {
-      steps {
-        step([$class: 'GitHubCommitStatusSetter',
-          contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-          statusResultSource: [$class: 'DefaultStatusResultSource'],
-          statusBackrefSource: [$class: 'BuildRefBackrefSource']
-        ])
-      }
-    }
+    // stage('Notify GitHub Start') {
+    //   steps {
+    //     step([$class: 'GitHubCommitStatusSetter',
+    //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
+    //       statusResultSource: [$class: 'DefaultStatusResultSource'],
+    //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
+    //     ])
+    //   }
+    // }
 
 
     stage('Preflight') {
