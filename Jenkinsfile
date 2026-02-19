@@ -4,6 +4,7 @@ pipeline {
 
   environment {
     // AWS_ACCOUNT = "${env.AWS_ACCOUNT ?: ''}"
+    APP_HOST_IP = credentials('app-host-ip') // <--added this as a Jenkins credential for Multibranch pipeline
     REGION = 'ap-south-1'
     // APP_HOST_IP = 'YOUR-EC2-B-IP' <-- configured this as jenkins parameter, so it can be set at build time
     ECR_API = "270099212260.dkr.ecr.ap-south-1.amazonaws.com/compose-fullstack-api"
