@@ -4,7 +4,7 @@ pipeline {
 
   environment {
     // AWS_ACCOUNT = "${env.AWS_ACCOUNT ?: ''}"
-    APP_HOST_IP = credentials('app-host-ip') // <--added this as a Jenkins credential for Multibranch pipeline
+    APP_HOST_IP = credentials('app-host-ip') // <--added this as a Jenkins credential for Multi-branch pipeline
     REGION = 'ap-south-1'
     // APP_HOST_IP = 'YOUR-EC2-B-IP' <-- configured this as jenkins parameter, so it can be set at build time
     ECR_API = "270099212260.dkr.ecr.ap-south-1.amazonaws.com/compose-fullstack-api"
@@ -13,17 +13,6 @@ pipeline {
   }
 
   stages {
-
-    // stage('Notify GitHub Start') {
-    //   steps {
-    //     step([$class: 'GitHubCommitStatusSetter',
-    //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
-    //       statusResultSource: [$class: 'DefaultStatusResultSource'],
-    //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
-    //     ])
-    //   }
-    // }
-
     stage('Preflight') {
       when {
         allOf {
@@ -55,12 +44,6 @@ pipeline {
     // Run tests in a container to ensure consistent environment 
     stage('Run tests') {
       steps {
-        step([$class: 'GitHubCommitStatusSetter',
-          contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
-          statusResultSource: [$class: 'DefaultStatusResultSource'],
-          statusBackrefSource: [$class: 'BuildRefBackrefSource']
-        ])
-
         sh '''
           set -e
           docker run --rm -v "$WORKSPACE/api":/app -w /app \
@@ -97,15 +80,6 @@ pipeline {
         }
       }
       steps {
-
-        script {
-          step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build-api'],
-            statusResultSource: [$class: 'DefaultStatusResultSource'],
-            statusBackrefSource: [$class: 'BuildRefBackrefSource']
-          ])
-        }
-
         sh '''
           set -e
 
@@ -134,14 +108,6 @@ pipeline {
         }
       }
       steps {
-        script {
-          step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/build-nginx'],
-            statusResultSource: [$class: 'DefaultStatusResultSource'],
-            statusBackrefSource: [$class: 'BuildRefBackrefSource']
-          ])
-        }
-
         sh '''
           set -e
 
@@ -162,6 +128,12 @@ pipeline {
     }
 
    stage('Docker cleanup') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         sh '''
           docker image prune -f
@@ -179,15 +151,6 @@ pipeline {
       }
       options { timeout(time: 10, unit: 'MINUTES') }
       steps {
-
-        script {
-          step([$class: 'GitHubCommitStatusSetter',
-            contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/deploy'],
-            statusResultSource: [$class: 'DefaultStatusResultSource'],
-            statusBackrefSource: [$class: 'BuildRefBackrefSource']
-          ])
-        }
-
         sshagent(credentials: ['SSH']) {
           withCredentials([
             string(credentialsId: 'pg-db-name', variable: 'POSTGRES_DB'),
