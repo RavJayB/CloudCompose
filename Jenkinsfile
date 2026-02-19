@@ -1,8 +1,10 @@
 pipeline {
+
   agent any
 
   environment {
     // AWS_ACCOUNT = "${env.AWS_ACCOUNT ?: ''}"
+    APP_HOST_IP = credentials('app-host-ip') // <--added this as a Jenkins credential for Multi-branch pipeline
     REGION = 'ap-south-1'
     // APP_HOST_IP = 'YOUR-EC2-B-IP' <-- configured this as jenkins parameter, so it can be set at build time
     ECR_API = "270099212260.dkr.ecr.ap-south-1.amazonaws.com/compose-fullstack-api"
@@ -11,19 +13,13 @@ pipeline {
   }
 
   stages {
-
-    stage('Notify GitHub Start') {
-      steps {
-        step([$class: 'GitHubCommitStatusSetter',
-          contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-          statusResultSource: [$class: 'DefaultStatusResultSource'],
-          statusBackrefSource: [$class: 'BuildRefBackrefSource']
-        ])
-      }
-    }
-
-
     stage('Preflight') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         script {
           if (!env.APP_HOST_IP?.trim()) {
@@ -57,7 +53,16 @@ pipeline {
       }
     }
 
+
+
     stage('Login to ECR') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
+
       steps {
         // If Jenkins has an instance role, no credentials needed — just run aws cli.
         sh '''
@@ -68,6 +73,12 @@ pipeline {
     }
 
     stage("Build and push API Image") {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         sh '''
           set -e
@@ -90,6 +101,12 @@ pipeline {
 
 
    stage('Build & Push Nginx') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         sh '''
           set -e
@@ -110,8 +127,13 @@ pipeline {
       }
     }
 
-
    stage('Docker cleanup') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       steps {
         sh '''
           docker image prune -f
@@ -121,6 +143,12 @@ pipeline {
     }
 
     stage('Deploy to EC2-B') {
+      when {
+        allOf {
+          branch 'main'
+          not { changeRequest() }
+        }
+      }
       options { timeout(time: 10, unit: 'MINUTES') }
       steps {
         sshagent(credentials: ['SSH']) {
@@ -181,23 +209,23 @@ pipeline {
     }
   }
 
-  post {
-    success {
-      step([$class: 'GitHubCommitStatusSetter',
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-        statusResultSource: [$class: 'DefaultStatusResultSource'],
-        statusBackrefSource: [$class: 'BuildRefBackrefSource']
-      ])
-    }
+  // post {
+  //   success {
+  //     step([$class: 'GitHubCommitStatusSetter',
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
+  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
+  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
+  //     ])
+  //   }
 
-    failure {
-      step([$class: 'GitHubCommitStatusSetter',
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'jenkins'],
-        statusResultSource: [$class: 'DefaultStatusResultSource'],
-        statusBackrefSource: [$class: 'BuildRefBackrefSource']
-      ])
-      echo "Build failed - check logs"
-    }
-  }
+  //   failure {
+  //     step([$class: 'GitHubCommitStatusSetter',
+  //       contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/jenkins/tests'],
+  //       statusResultSource: [$class: 'DefaultStatusResultSource'],
+  //       statusBackrefSource: [$class: 'BuildRefBackrefSource']
+  //     ])
+  //   }
+  // }
+
 
 }
