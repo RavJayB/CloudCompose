@@ -1,11 +1,12 @@
 
-![Deploy demo](./assets/deploy-demo.gif)
 
 # DockDeploy — CI/CD Pipeline for Containerised Applications
 
 **End‑to‑end CI/CD pipeline for a containerised full‑stack application.** Jenkins builds, tests, tags and pushes Docker images to AWS ECR, then securely deploys to an EC2 application host using SSH and Docker Compose.
 
 ---
+
+![Deploy demo](./assets/deploy-demo.gif)
 
 ## 🚀 Key Highlights
 
